@@ -2,7 +2,9 @@
 
 A Lean 4 formalization showing that the three classical barriers in computational complexity theory—**relativization**, **algebrization**, and **natural proofs**—can be expressed as instances of a single principle: **pseudorandomness to bounded observers**.
 
-**Paper**: [A Unified Formal Framework for Relativization, Algebrization, and Natural Proof Barriers via Pseudorandomness](Dennj%20Osele%20-%20A%20Unified%20Formal%20Framework%20for%20Relativization,%20Algebrization,%20and%20Natural%20Proof%20Barriers%20via%20Pseudorandomness.pdf)
+DOI: [10.5281/zenodo.18046525](https://doi.org/10.5281/zenodo.18046525)
+
+**PDF**: [A Unified Formal Framework for Relativization, Algebrization, and Natural Proof Barriers via Pseudorandomness](Dennj%20Osele%20-%20A%20Unified%20Formal%20Framework%20for%20Relativization,%20Algebrization,%20and%20Natural%20Proof%20Barriers%20via%20Pseudorandomness.pdf)
 
 **Code**: <https://github.com/dennj/Pseudorandomness>
 

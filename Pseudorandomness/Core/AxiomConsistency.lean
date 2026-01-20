@@ -24,7 +24,7 @@ namespace Pseudorandomness
 
 /-! ## Axiom Inventory
 
-The Pseudorandomness framework uses the following axioms (14 total).
+The Pseudorandomness framework uses the following axioms (13 total).
 
 **IMPORTANT**: The three barrier theorems (relativization, algebrization,
 natural proofs) require NO axioms. They are direct corollaries of the
@@ -42,16 +42,14 @@ Observer Barrier theorem, which is proven from first principles.
 9. `ph_does_not_collapse` - Standard assumption: ¬PHCollapses
 10. `karp_lipton` - Karp-Lipton theorem
 
-### Shannon Counting (StrongProofTechnique.lean) - 2 axioms
-11. `shannon_counting` - Most functions require large circuits
-    **Justification**: Shannon (1949) counting argument.
-12. `exponential_dominates_polynomial` - 2^n/n dominates n^k asymptotically
+### Shannon Counting (StrongProofTechnique.lean) - 1 axiom
+11. `exponential_dominates_polynomial` - 2^n/n dominates n^k asymptotically
     **Justification**: Standard analysis/calculus result.
 
 ### Example Soundness Axioms (Examples/) - 2 axioms
-13. `diagonalization_soundness` - Diagonalization produces 1-query distinguisher
+12. `diagonalization_soundness` - Diagonalization produces 1-query distinguisher
     **Justification**: The diagonal argument checks f(i) vs Mᵢ(i), which is 1 query.
-14. `counting_soundness` - Counting produces poly-time distinguisher
+13. `counting_soundness` - Counting produces poly-time distinguisher
     **Justification**: Circuit evaluation is poly-time computable.
 
 ### Barrier Instance Files - 0 axioms!
@@ -91,15 +89,14 @@ Together: the barriers hold.
 **Proof sketch**:
 
 All axioms are instantiated by the standard Turing machine / Boolean circuit
-model. Each has a proof in the literature:
+ model. Each has a proof in the literature:
 
 1. `circuit_exists`: Shannon-Lupanov (1949, 1958)
-2. `shannon_counting`: Shannon (1949)
-3. `explicit_*`: Standard computability theory
-4. `exponential_dominates_polynomial`: Standard analysis (L'Hôpital's rule)
-5. `diagonalization_soundness`: Diagonal argument structure
-6. `counting_soundness`: Circuit evaluation is in P
-7. `PHCollapses`, `karp_lipton`: Standard complexity theory (Karp-Lipton 1980)
+2. `explicit_*`: Standard computability theory
+3. `exponential_dominates_polynomial`: Standard analysis (L'Hôpital's rule)
+4. `diagonalization_soundness`: Diagonal argument structure
+5. `counting_soundness`: Circuit evaluation is in P
+6. `PHCollapses`, `karp_lipton`: Standard complexity theory (Karp-Lipton 1980)
 
 ### Key Observation
 

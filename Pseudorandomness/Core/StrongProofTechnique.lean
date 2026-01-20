@@ -63,13 +63,20 @@ Bell System Technical Journal, 28(1):59-98.
   C. Shannon (1949). Bell System Technical Journal, 28(1):59-98.
   See also: Arora-Barak (2009), Theorem 6.21.
 -/
-axiom shannon_counting (n : ℕ) (hn : n ≥ 3) :
+theorem shannon_counting (n : ℕ) (hn : n ≥ 3) :
   -- There exists a set of "hard" functions
   ∃ (hardFunctions : Set (BoolFun n)),
     -- The set is non-empty (hard functions exist)
     hardFunctions.Nonempty ∧
     -- All functions in the set require large circuits
-    (∀ f ∈ hardFunctions, RequiresCircuitSize f (2^n / (2 * n + 1)))
+    (∀ f ∈ hardFunctions, RequiresCircuitSize f (2^n / (2 * n + 1))) := by
+  have hex : ∃ f : BoolFun n, RequiresCircuitSize f (2^n / (2 * n + 1)) :=
+    shannon_counting_exists n hn
+  refine ⟨{f | RequiresCircuitSize f (2^n / (2 * n + 1))}, ?_, ?_⟩
+  · rcases hex with ⟨f, hf⟩
+    exact ⟨f, hf⟩
+  · intro f hf
+    exact hf
 
 /--
   **Corollary**: There exist functions requiring superpolynomial circuits
