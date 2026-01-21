@@ -24,7 +24,7 @@ namespace Pseudorandomness
 
 /-! ## Axiom Inventory
 
-The Pseudorandomness framework currently uses the following axioms (14 total).
+The Pseudorandomness framework currently uses the following axioms (13 total).
 
 **IMPORTANT**: The three barrier theorems (relativization, algebrization,
 natural proofs) require NO axioms. They are direct corollaries of the
@@ -39,21 +39,17 @@ Observer Barrier theorem, which is proven from first principles.
 6. `ph_does_not_collapse` - Standard assumption: ¬PHCollapses
 7. `karp_lipton` - Karp-Lipton theorem
 
-### Growth Bound (StrongProofTechnique.lean) - 1 axiom
-8. `exponential_dominates_polynomial` - 2^n/n dominates n^k asymptotically
-    **Justification**: Standard analysis/calculus result.
-
 ### Example Soundness Axioms (Examples/) - 2 axioms
-9. `diagonalization_soundness` - Diagonalization produces 1-query distinguisher
+8. `diagonalization_soundness` - Diagonalization produces 1-query distinguisher
     **Justification**: The diagonal argument checks f(i) vs Mᵢ(i), which is 1 query.
-10. `counting_soundness` - Counting produces poly-time distinguisher
+9. `counting_soundness` - Counting produces poly-time distinguisher
     **Justification**: Circuit evaluation is poly-time computable.
 
 ### Number Theory Bridge Axioms (Applications/NumberTheoryBridge.lean) - 4 axioms
-11. `green_tao_nilsystem_bridge` - Connects nilsystems to pseudorandomness
-12. `mullner_automatic_bridge` - Automatic sequences ↔ pseudorandomness
-13. `bourgain_sarnak_ziegler_bridge` - Möbius disjointness bridge
-14. `chowla_implies_sarnak` - Chowla ⇒ Sarnak implication
+10. `green_tao_nilsystem_bridge` - Connects nilsystems to pseudorandomness
+11. `mullner_automatic_bridge` - Automatic sequences ↔ pseudorandomness
+12. `bourgain_sarnak_ziegler_bridge` - Möbius disjointness bridge
+13. `chowla_implies_sarnak` - Chowla ⇒ Sarnak implication
 
 ### Barrier Instance Files - 0 axioms!
 The barrier files contain NO axioms. They prove:
@@ -95,11 +91,10 @@ All axioms are intended to be instantiated by the standard Turing machine / Bool
 Each has a proof (or standard justification) in the literature:
 
 1. `explicit_*`: Standard computability theory
-2. `exponential_dominates_polynomial`: Standard analysis (L'Hôpital's rule)
-3. `diagonalization_soundness`: Diagonal argument structure
-4. `counting_soundness`: Circuit evaluation is in P
-5. `PHCollapses`, `karp_lipton`: Standard complexity theory (Karp-Lipton 1980)
-6. `*_bridge` axioms: standard analytic/number-theoretic results (as cited in `Applications/NumberTheoryBridge.lean`)
+2. `diagonalization_soundness`: Diagonal argument structure
+3. `counting_soundness`: Circuit evaluation is in P
+4. `PHCollapses`, `karp_lipton`: Standard complexity theory (Karp-Lipton 1980)
+5. `*_bridge` axioms: standard analytic/number-theoretic results (as cited in `Applications/NumberTheoryBridge.lean`)
 
 ### Key Observation
 

@@ -19,8 +19,13 @@
 
 import Pseudorandomness.Foundations.Circuits
 import Pseudorandomness.Core.ProofTechnique
+import Mathlib.Analysis.Asymptotics.Lemmas
+import Mathlib.Analysis.SpecialFunctions.Exp
 
 namespace Pseudorandomness
+
+open Filter
+open Asymptotics
 
 variable {n : ℕ}
 
@@ -124,8 +129,135 @@ superpolynomial circuit requirement used in P vs NP.
   **Literature**: Standard calculus/asymptotic analysis.
   See: Cormen et al., "Introduction to Algorithms", Chapter 3 (Growth of Functions).
 -/
-axiom exponential_dominates_polynomial (k : ℕ) :
-  ∃ N : ℕ, ∀ n ≥ N, (n + 1)^k < 2^n / (2 * n + 1)
+theorem exponential_dominates_polynomial (k : ℕ) :
+    ∃ N : ℕ, ∀ n ≥ N, (n + 1)^k < 2 ^ n / (2 * n + 1) := by
+  classical
+
+  have hbpos (n : ℕ) : 0 < (2 * n + 1) := by omega
+
+  -- Work in `ℝ`, using the standard limit `n^(k+1) / 2^n → 0`.
+  let f : ℕ → ℝ := fun n =>
+    (((((n + 1) ^ k + 1) * (2 * n + 1) : ℕ) : ℝ)) / ((2 : ℝ) ^ n)
+
+  have hf_nonneg : ∀ n, 0 ≤ f n := by
+    intro n
+    have hden : 0 ≤ ((2 : ℝ) ^ n) := by positivity
+    exact div_nonneg (by positivity) hden
+
+  have hlim_base :
+      Tendsto (fun n : ℕ => (n : ℝ) ^ (k + 1) / (2 : ℝ) ^ n) atTop (nhds (0 : ℝ)) :=
+    tendsto_pow_const_div_const_pow_of_one_lt (k := k + 1) (by norm_num : (1 : ℝ) < 2)
+
+  have hLittle :
+      (fun n : ℕ => (n : ℝ) ^ (k + 1)) =o[atTop] fun n : ℕ => (2 : ℝ) ^ n := by
+    refine Asymptotics.isLittleO_of_tendsto (l := atTop)
+      (f := fun n : ℕ => (n : ℝ) ^ (k + 1)) (g := fun n : ℕ => (2 : ℝ) ^ n) ?_ hlim_base
+    intro n hn
+    exact (pow_ne_zero n (by norm_num : (2 : ℝ) ≠ 0) hn).elim
+
+  have hlim_pow :
+      Tendsto (fun n : ℕ => (n : ℝ) ^ (k + 1) / (2 : ℝ) ^ n) atTop (nhds (0 : ℝ)) := by
+    simpa using (Asymptotics.IsLittleO.tendsto_div_nhds_zero (l := atTop) hLittle)
+
+  let C : ℝ := ((6 * 2 ^ k : ℕ) : ℝ)
+  have hlim_upper :
+      Tendsto (fun n : ℕ => C * ((n : ℝ) ^ (k + 1) / (2 : ℝ) ^ n)) atTop (nhds (0 : ℝ)) := by
+    simpa [C, mul_zero] using (Filter.Tendsto.const_mul C hlim_pow)
+
+  have hbound : ∀ᶠ n : ℕ in atTop, f n ≤ C * ((n : ℝ) ^ (k + 1) / (2 : ℝ) ^ n) := by
+    refine (eventually_ge_atTop (1 : ℕ)).mono ?_
+    intro n hn1
+    have hnpos : 0 < n := Nat.succ_le_iff.mp hn1
+
+    -- (n+1)^k + 1 ≤ 2 * (n+1)^k
+    have hpow1 : 1 ≤ (n + 1) ^ k := Nat.one_le_pow k (n + 1) (Nat.succ_pos _)
+    have hA : (n + 1) ^ k + 1 ≤ 2 * (n + 1) ^ k := by
+      have hsum : (n + 1) ^ k + 1 ≤ (n + 1) ^ k + (n + 1) ^ k :=
+        Nat.add_le_add_left hpow1 _
+      simpa [two_mul] using hsum
+
+    -- n+1 ≤ 2n (for n ≥ 1)
+    have hbase : n + 1 ≤ 2 * n := by omega
+    have hB : (n + 1) ^ k ≤ (2 * n) ^ k := Nat.pow_le_pow_left hbase _
+
+    -- 2n+1 ≤ 3n (for n ≥ 1)
+    have hden : 2 * n + 1 ≤ 3 * n := by omega
+
+    have hNum :
+        ((n + 1) ^ k + 1) * (2 * n + 1) ≤ (6 * 2 ^ k) * n ^ (k + 1) := by
+      calc
+        ((n + 1) ^ k + 1) * (2 * n + 1)
+            ≤ (2 * (n + 1) ^ k) * (2 * n + 1) := by
+                exact Nat.mul_le_mul_right _ hA
+        _ ≤ (2 * (2 * n) ^ k) * (2 * n + 1) := by
+              exact Nat.mul_le_mul_right _ (Nat.mul_le_mul_left 2 hB)
+        _ ≤ (2 * (2 * n) ^ k) * (3 * n) := by
+              exact Nat.mul_le_mul_left _ hden
+        _ = (6 * ((2 * n) ^ k)) * n := by
+              ring
+        _ = (6 * (2 ^ k * n ^ k)) * n := by
+              simp [Nat.mul_pow, Nat.mul_assoc, Nat.mul_comm]
+        _ = (6 * 2 ^ k) * n ^ (k + 1) := by
+              simp [Nat.pow_succ, Nat.mul_assoc, Nat.mul_comm]
+
+    have hNum' :
+        ((((n + 1) ^ k + 1) * (2 * n + 1) : ℕ) : ℝ) ≤ C * (n : ℝ) ^ (k + 1) := by
+      -- cast the Nat inequality to `ℝ`
+      have := (Nat.cast_le.2 hNum : (((((n + 1) ^ k + 1) * (2 * n + 1) : ℕ)) : ℝ)
+        ≤ (((((6 * 2 ^ k) * n ^ (k + 1) : ℕ)) : ℝ)))
+      -- rewrite the RHS
+      simpa [C, Nat.cast_mul, Nat.cast_pow, Nat.cast_ofNat, Nat.cast_add, Nat.cast_one,
+        mul_assoc, mul_left_comm, mul_comm] using this
+
+    have hden_nonneg : 0 ≤ ((2 : ℝ) ^ n) := by positivity
+    calc
+      f n = (((((n + 1) ^ k + 1) * (2 * n + 1) : ℕ) : ℝ)) / ((2 : ℝ) ^ n) := rfl
+      _ ≤ (C * (n : ℝ) ^ (k + 1)) / ((2 : ℝ) ^ n) := by
+            exact div_le_div_of_nonneg_right hNum' hden_nonneg
+      _ = C * ((n : ℝ) ^ (k + 1) / (2 : ℝ) ^ n) := by
+            simp [div_eq_mul_inv, mul_assoc, mul_left_comm, mul_comm]
+
+  have hTendsto : Tendsto f atTop (nhds (0 : ℝ)) := by
+    refine tendsto_of_tendsto_of_tendsto_of_le_of_le' tendsto_const_nhds hlim_upper ?_ hbound
+    exact Filter.Eventually.of_forall hf_nonneg
+
+  have hlt1 : ∀ᶠ n : ℕ in atTop, f n < 1 := by
+    have hball : ∀ᶠ n : ℕ in atTop, f n ∈ Metric.ball (0 : ℝ) 1 :=
+      hTendsto.eventually (Metric.ball_mem_nhds (0 : ℝ) (by simp))
+    filter_upwards [hball] with n hn
+    have habs : |f n| < 1 := by
+      simpa [Metric.mem_ball, Real.dist_eq] using hn
+    simpa [abs_of_nonneg (hf_nonneg n)] using habs
+
+  rcases (eventually_atTop.1 hlt1) with ⟨N₀, hN₀⟩
+  refine ⟨max 1 N₀, ?_⟩
+  intro n hn
+  have hn₀ : N₀ ≤ n := le_trans (le_of_max_le_right hn) (le_rfl)
+  have hn1 : 1 ≤ n := le_trans (le_of_max_le_left hn) (le_rfl)
+
+  have hreal_div : f n < 1 := hN₀ n hn₀
+  have hden_pos : 0 < ((2 : ℝ) ^ n) := by positivity
+  have hreal :
+      (((((n + 1) ^ k + 1) * (2 * n + 1) : ℕ) : ℝ)) < ((2 : ℝ) ^ n) := by
+    -- `a / b < 1` with `b>0` implies `a < b`
+    have := (div_lt_iff₀ hden_pos).1 hreal_div
+    simpa [f, one_mul] using this
+
+  have hnat :
+      (((n + 1) ^ k + 1) * (2 * n + 1)) ≤ 2 ^ n := by
+    -- convert `ℝ` inequality back to `ℕ`
+    have hnat_lt : (((n + 1) ^ k + 1) * (2 * n + 1)) < 2 ^ n := by
+      -- rewrite RHS as a cast of `2^n` and use `exact_mod_cast`
+      have hreal' :
+          (((((n + 1) ^ k + 1) * (2 * n + 1) : ℕ) : ℝ)) < (((2 ^ n : ℕ) : ℝ)) := by
+        simpa [Nat.cast_pow] using hreal
+      exact_mod_cast hreal'
+    exact Nat.le_of_lt hnat_lt
+
+  have hle_div : (n + 1) ^ k + 1 ≤ 2 ^ n / (2 * n + 1) :=
+    (Nat.le_div_iff_mul_le (hbpos n)).2 (by simpa [Nat.mul_assoc] using hnat)
+
+  exact lt_of_lt_of_le (Nat.lt_succ_self ((n + 1) ^ k)) hle_div
 
 /--
   **Shannon Implies Superpolynomial** (for large n)
