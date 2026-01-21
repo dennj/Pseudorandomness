@@ -55,6 +55,7 @@ import Mathlib.Algebra.BigOperators.Group.Finset.Defs
 import Mathlib.Data.Fintype.BigOperators
 import Mathlib.Data.Nat.Factorization.Basic
 import Mathlib.Order.Filter.AtTopBot.Basic
+import Mathlib.Analysis.SpecificLimits.Basic
 
 namespace NumberTheory
 
@@ -310,6 +311,125 @@ theorem pseudorandom_iff_no_distinguisher_nt (a : ArithmeticSequence) (O : NTObs
     apply h obs hObs
     exact ⟨ε, hε, hNot⟩
 
+/-! ## Closure / structure lemmas
+
+These are the “mathlib-grade” facts: they are purely about the quantifier structure
+of the definitions, and do not rely on any deep number theory.
+-/
+
+theorem isPseudorandomToNT_mono {a : ArithmeticSequence} {O O' : NTObserverClass}
+    (hSub : O' ⊆ O) (hPR : IsPseudorandomToNT a O) :
+    IsPseudorandomToNT a O' := by
+  intro obs hObs
+  exact hPR obs (hSub hObs)
+
+theorem isPseudorandomToNT_union {a : ArithmeticSequence} {O₁ O₂ : NTObserverClass}
+    (h₁ : IsPseudorandomToNT a O₁) (h₂ : IsPseudorandomToNT a O₂) :
+    IsPseudorandomToNT a (O₁ ∪ O₂) := by
+  intro obs hObs
+  rcases hObs with hObs | hObs
+  · exact h₁ obs hObs
+  · exact h₂ obs hObs
+
+theorem isPseudorandomToNT_inter_left {a : ArithmeticSequence} {O₁ O₂ : NTObserverClass}
+    (h₁ : IsPseudorandomToNT a O₁) :
+    IsPseudorandomToNT a (O₁ ∩ O₂) := by
+  exact isPseudorandomToNT_mono (O := O₁) (O' := O₁ ∩ O₂) (by intro obs h; exact h.1) h₁
+
+theorem isPseudorandomToNT_inter_right {a : ArithmeticSequence} {O₁ O₂ : NTObserverClass}
+    (h₂ : IsPseudorandomToNT a O₂) :
+    IsPseudorandomToNT a (O₁ ∩ O₂) := by
+  exact isPseudorandomToNT_mono (O := O₂) (O' := O₁ ∩ O₂) (by intro obs h; exact h.2) h₂
+
+theorem isPseudorandomToNT_congr {a b : ArithmeticSequence} (h : a = b) (O : NTObserverClass) :
+    IsPseudorandomToNT a O ↔ IsPseudorandomToNT b O := by
+  subst h
+  rfl
+
+/-- Tendsto-form: monotonicity in the observer class. -/
+theorem tendstoForm_mono {a : ArithmeticSequence} {O O' : NTObserverClass}
+    (hSub : O' ⊆ O) (h : ∀ obs ∈ O, Tendsto (fun N => correlation a obs N) atTop (nhds 0)) :
+    ∀ obs ∈ O', Tendsto (fun N => correlation a obs N) atTop (nhds 0) := by
+  intro obs hObs
+  exact h obs (hSub hObs)
+
+/-- Tendsto-form: union closure. -/
+theorem tendstoForm_union {a : ArithmeticSequence} {O₁ O₂ : NTObserverClass}
+    (h₁ : ∀ obs ∈ O₁, Tendsto (fun N => correlation a obs N) atTop (nhds 0))
+    (h₂ : ∀ obs ∈ O₂, Tendsto (fun N => correlation a obs N) atTop (nhds 0)) :
+    ∀ obs ∈ (O₁ ∪ O₂), Tendsto (fun N => correlation a obs N) atTop (nhds 0) := by
+  intro obs hObs
+  rcases hObs with hObs | hObs
+  · exact h₁ obs hObs
+  · exact h₂ obs hObs
+
+/-- Tendsto-form: pseudorandomness iff no distinguisher exists. -/
+theorem tendstoForm_iff_no_distinguisher (a : ArithmeticSequence) (O : NTObserverClass) :
+    (∀ obs ∈ O, Tendsto (fun N => correlation a obs N) atTop (nhds 0)) ↔
+      ∀ obs ∈ O, ¬DistinguishesNT obs a := by
+  constructor
+  · intro hT
+    have hPR : IsPseudorandomToNT a O := (isPseudorandomToNT_iff_tendsto (a := a) (O := O)).2 hT
+    exact (pseudorandom_iff_no_distinguisher_nt (a := a) (O := O)).1 hPR
+  · intro hNo
+    have hPR : IsPseudorandomToNT a O :=
+      (pseudorandom_iff_no_distinguisher_nt (a := a) (O := O)).2 hNo
+    exact (isPseudorandomToNT_iff_tendsto (a := a) (O := O)).1 hPR
+
+/-! ## Provable special cases (mathlib-level)
+
+The deep special cases of Sarnak (nilsystems, automatic sequences, horocycles) are far beyond
+current mathlib. However, we *can* prove nontrivial sanity-check special cases that illustrate the
+framework: observers whose correlation is forced to decay like `1/(N+1)`.
+-/
+
+noncomputable def prefixSumObserver (K : ℕ) : DynamicalObserver where
+  name := s!"prefixSum({K})"
+  observe := fun a N => (∑ n ∈ Finset.range K, (a.seq n).re) / ((N : ℝ) + 1)
+  entropy := 0
+  entropy_nonneg := by simp
+  bound := 1
+  bound_pos := by decide
+
+def PrefixSumObservers : NTObserverClass :=
+  { obs | ∃ K, obs = prefixSumObserver K }
+
+theorem prefixSumObserver_isZeroEntropy (K : ℕ) :
+    (prefixSumObserver K).IsZeroEntropy := by
+  simp [prefixSumObserver, DynamicalObserver.IsZeroEntropy]
+
+theorem prefixSumObservers_subset_zeroEntropy :
+    PrefixSumObservers ⊆ ZeroEntropyObservers := by
+  intro obs hObs
+  rcases hObs with ⟨K, rfl⟩
+  exact prefixSumObserver_isZeroEntropy K
+
+theorem tendsto_correlation_prefixSumObserver (a : ArithmeticSequence) (K : ℕ) :
+    Tendsto (fun N => correlation a (prefixSumObserver K) N) atTop (nhds 0) := by
+  -- The numerator is constant in `N`, and `1/(N+1) → 0`.
+  have hInv : Tendsto (fun N : ℕ => (1 : ℝ) / ((N : ℝ) + 1)) atTop (nhds 0) :=
+    tendsto_one_div_add_atTop_nhds_zero_nat (𝕜 := ℝ)
+  -- Multiply by the constant numerator.
+  have hMul :
+      Tendsto
+        (fun N : ℕ =>
+          (∑ n ∈ Finset.range K, (a.seq n).re) * ((1 : ℝ) / ((N : ℝ) + 1))) atTop (nhds 0) :=
+    by
+      simpa [mul_zero] using (tendsto_const_nhds.mul hInv)
+  -- Unfold `correlation` and `prefixSumObserver`, and rewrite `/` as `* (1/·)`.
+  simpa [correlation, prefixSumObserver, div_eq_mul_inv, one_div] using hMul
+
+theorem isPseudorandomToNT_prefixSumObservers (a : ArithmeticSequence) :
+    IsPseudorandomToNT a PrefixSumObservers := by
+  refine (isPseudorandomToNT_iff_tendsto (a := a) (O := PrefixSumObservers)).2 ?_
+  intro obs hObs
+  rcases hObs with ⟨K, rfl⟩
+  simpa using tendsto_correlation_prefixSumObserver (a := a) K
+
+theorem mobius_pseudorandom_prefixSumObservers :
+    IsPseudorandomToNT ArithmeticSequence.möbius PrefixSumObservers := by
+  simpa using isPseudorandomToNT_prefixSumObservers (a := ArithmeticSequence.möbius)
+
 /-! ## THE BRIDGE THEOREMS
 
 Now we state the main results connecting number theory to pseudorandomness.
@@ -378,8 +498,7 @@ axiom bourgain_sarnak_ziegler_bridge :
 theorem pseudorandom_subset_nt {a : ArithmeticSequence} {O O' : NTObserverClass}
     (hSub : O' ⊆ O) (hPR : IsPseudorandomToNT a O) :
     IsPseudorandomToNT a O' := by
-  intro obs hObs
-  exact hPR obs (hSub hObs)
+  exact isPseudorandomToNT_mono (a := a) hSub hPR
 
 /--
   **Green-Tao implies restricted Sarnak**
@@ -433,9 +552,11 @@ of primes.
 theorem nt_barrier_principle (O : NTObserverClass)
     (hPR : IsPseudorandomToNT ArithmeticSequence.möbius O) :
     ∀ obs ∈ O, ¬DistinguishesNT obs ArithmeticSequence.möbius := by
-  intro obs hObs
-  rw [pseudorandom_iff_no_distinguisher_nt] at hPR
-  exact hPR obs hObs
+  have hT :
+      ∀ obs ∈ O,
+        Tendsto (fun N => correlation ArithmeticSequence.möbius obs N) atTop (nhds 0) :=
+    (isPseudorandomToNT_iff_tendsto (a := ArithmeticSequence.möbius) (O := O)).1 hPR
+  exact (tendstoForm_iff_no_distinguisher (a := ArithmeticSequence.möbius) (O := O)).1 hT
 
 /--
   **The Möbius is "Cryptographically Complex"**
@@ -455,7 +576,7 @@ theorem mobius_complexity_intuition :
   · intro h
     exact h ZeroEntropyObservers (Set.Subset.refl _)
   · intro hSarnak O hSub
-    exact pseudorandom_subset_nt hSub hSarnak
+    exact isPseudorandomToNT_mono (a := ArithmeticSequence.möbius) hSub hSarnak
 
 /-! ## Summary
 
