@@ -77,6 +77,7 @@
 -- Core framework
 import Pseudorandomness.Core.ObserverBarrier
 import Pseudorandomness.Core.ProofTechnique
+import Pseudorandomness.Core.LearningBarrier
 import Pseudorandomness.Foundations.Crypto
 
 -- The three classical barriers as corollaries
@@ -88,10 +89,11 @@ import Pseudorandomness.BarrierInstances.NaturalProofs
 import Pseudorandomness.ObserverClasses.Hierarchy
 
 -- Applications
-import Pseudorandomness.Applications.PvsNP
-import Pseudorandomness.Applications.MachineLearningBridge
-import Pseudorandomness.Applications.ControlTheoryBridge
-import Pseudorandomness.Applications.StochasticControlBridge
+import Pseudorandomness.Applications.Complexity.PvsNP
+import Pseudorandomness.Applications.MachineLearning.MachineLearningBridge
+import Pseudorandomness.Applications.ControlTheory.ControlTheoryBridge
+import Pseudorandomness.Applications.ControlTheory.StochasticControlBridge
+import Pseudorandomness.Applications.ControlTheory.ControlLearningBarrier
 import Pseudorandomness.Foundations.MeasureCrypto
 
 namespace ObserverBarrierTheory

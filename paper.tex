@@ -172,11 +172,11 @@ structure BoundedObserver (n : Nat) where
   observe : BoolFun n -> Real
   randomExpectation : Real
   bound : Nat
+  bound_pos : bound > 0 := by decide
   queryComplexity : Nat
   algebraicDegree : Nat
-  timeComplexity : Nat
-  -- Semantic constraints:
   query_degree_bound : algebraicDegree <= queryComplexity + 1
+  timeComplexity : Nat
   degree_time_bound : timeComplexity <= (n + 1)^(algebraicDegree + 1)
   bound_ge_time : bound >= timeComplexity
 \end{verbatim}
@@ -259,6 +259,18 @@ Let $\mathcal{O}_n$ be an observer class and let $T$ be a proof technique relati
 \begin{proof}
 Suppose $\mathrm{Cert}_T(f)$. By soundness, there exists $\mathrm{obs} \in \mathcal{O}_n$ with $|\mathrm{obs}(f) - \mathbb{E}[\mathrm{obs}]| \geq 1/B(\mathrm{obs})$. But $f$ is $(1/B(\mathrm{obs}))$-pseudorandom to $\mathcal{O}_n$, so $|\mathrm{obs}(f) - \mathbb{E}[\mathrm{obs}]| < 1/B(\mathrm{obs})$. Contradiction.
 \end{proof}
+
+\paragraph{Lean statement (excerpt).}
+In Lean (\texttt{Pseudorandomness/Core/ObserverBarrier.lean}), the main theorem is:
+\begin{verbatim}
+theorem observer_barrier (O : ObserverClass n)
+    (f : BoolFun n) (hPR : IsPseudorandomTo f O) :
+    forall T : ProofTechnique n, T.isOBounded O ->
+    not (T.certifiesSeparation /\
+      exists obs, obs ∈ T.observerClass /\
+        |obs.observe f - obs.randomExpectation| >= 1 / obs.bound) := by
+  ...
+\end{verbatim}
 
 \begin{remark}[Conditional Nature]
 The theorem is \emph{unconditional} as a logical implication. The \emph{assumption} that pseudorandom functions exist against $\mathcal{O}_n$ is what makes it non-trivial. For $\mathcal{O}_n = \mathrm{PolyTime}$, this assumption is the standard cryptographic hypothesis that PRFs exist.
@@ -395,7 +407,7 @@ Combining with our derivation:
 \emph{OWFs exist} $\Rightarrow$ \emph{PRFs exist} $\Rightarrow$ \emph{Observer Barrier for $\mathrm{PolyTime}$} $\Rightarrow$ \emph{Natural Proofs Barrier}
 \end{quote}
 
-This chain is fully formalized in Lean, with the PRF assumption as the only external hypothesis.
+In the Lean development, we do \emph{not} mechanize the cryptographic reduction (OWF $\Rightarrow$ PRF / GGM). Instead, we take the existence of a function pseudorandom to $\mathrm{PolyTimeObservers}(n,k)$ as a hypothesis (``PRF existence'') and derive the barrier theorem as a pure logical implication.
 
 \subsubsection{What This Derivation Shows}
 
@@ -403,7 +415,12 @@ The natural proofs barrier is \emph{not} a separate phenomenon from the observer
 
 In Lean, this is captured by definitional equality:
 \begin{verbatim}
-theorem natural_proofs_barrier :=
+theorem natural_proofs_barrier {n : Nat} (k : Nat)
+    (f : BoolFun n) (hPR : IsPseudorandomTo f (PolyTimeObservers n k)) :
+    forall T : ProofTechnique n, T.isOBounded (PolyTimeObservers n k) ->
+    not (T.certifiesSeparation /\
+      exists obs, obs ∈ T.observerClass /\
+        |obs.observe f - obs.randomExpectation| >= 1 / obs.bound) :=
   observer_barrier (PolyTimeObservers n k) f hPR
 \end{verbatim}
 
@@ -466,14 +483,15 @@ Natural proof against $\mathcal{C}$ & Property tester & Hard functions from rand
 
 If pseudorandom functions exist against poly-time observers, \emph{both} capabilities are blocked simultaneously. This is why the Carmosino equivalence holds: natural proofs and learning are two manifestations of the same phenomenon.
 
-Our Lean formalization captures this connection in \texttt{Applications/CarmosinoEquivalence.lean}, proving:
+Our Lean formalization captures this connection in \texttt{Pseudorandomness/Applications/MachineLearning/MachineLearningBridge.lean}, proving:
 \begin{verbatim}
-theorem carmosino_from_observer_barrier :
-    (Exists f, IsPseudorandomTo f (PolyTimeObservers n k)) ->
-    Exists f, Not (NaturalProofsExist C k) /\ Not (IsLearnable C k)
+theorem carmosino_from_observer_barrier (k : Nat)
+    (hPRF : exists f : BoolFun n, IsPseudorandomTo f (PolyTimeObservers n k)) :
+    exists f : BoolFun n,
+      (forall obs, obs ∈ PolyTimeObservers n k -> not (Distinguishes obs f)) := by
 \end{verbatim}
 
-\textbf{Note}: We formalize the \emph{existential} equivalence, not the constructive algorithm from the original paper.
+\textbf{Note}: The Lean development focuses on the observer-theoretic core (distinguishing vs.\ pseudorandomness) and does not implement the full constructive reductions of Carmosino et al.
 
 \subsection{Connection to Control Theory}
 
@@ -501,11 +519,20 @@ The unobservable subspace consists of states that produce zero output for all ti
 
 \subsubsection{The Pseudorandomness Connection}
 
-We prove in \texttt{Applications/ControlTheoryBridge.lean}:
+We prove in \texttt{Pseudorandomness/Applications/ControlTheory/ControlTheoryBridge.lean}:
 
 \begin{theorem}[Observability Bridge]
 A linear system is observable if and only if no non-zero state is pseudorandom to output observers.
 \end{theorem}
+
+\paragraph{Lean statement (excerpt).}
+In Lean, the bridge theorem is:
+\begin{verbatim}
+theorem observability_bridge :
+    Iff sys.IsObservable
+      (forall x : Fin n -> 𝕜, sys.IsPseudorandomToOutputs x -> x = 0) := by
+  ...
+\end{verbatim}
 
 Here, an \emph{output observer} is a linear functional computed from the output sequence:
 \[
@@ -552,6 +579,7 @@ This statement is proved formally and does not rely on informal intuition.
 \section{Formal Verification}
 
 All definitions and theorems are mechanized in Lean 4 with Mathlib.
+The project is managed by Lake; \texttt{lean-toolchain} pins Lean to \texttt{leanprover/lean4:v4.27.0-rc1}, and the library builds with \texttt{lake build}.
 This includes:
 \begin{itemize}
   \item Observer hierarchies,

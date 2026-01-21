@@ -1,5 +1,5 @@
 import Pseudorandomness.Foundations.MeasureCrypto
-import Pseudorandomness.Applications.ControlTheoryBridge
+import Pseudorandomness.Applications.ControlTheory.ControlTheoryBridge
 
 /-!
   Stochastic Control Bridge (Measure-Crypto API)

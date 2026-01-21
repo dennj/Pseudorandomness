@@ -19,6 +19,7 @@
 import Pseudorandomness.Core.ObserverBarrier
 import Pseudorandomness.ObserverClasses.PolyTime
 import Pseudorandomness.Foundations.BooleanFunctionDistance
+import Pseudorandomness.Core.LearningBarrier
 
 namespace Pseudorandomness
 
