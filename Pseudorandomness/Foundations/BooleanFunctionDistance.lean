@@ -3,8 +3,6 @@ import Pseudorandomness.Foundations.ObserverDistance
 
 namespace Pseudorandomness
 
-open ObserverDistance
-
 namespace BooleanFunctionDistance
 
 variable {n : ℕ}
@@ -41,13 +39,62 @@ theorem indistinguishableTo_isPseudorandomTo_iff (O : ObserverClass n) {f g : Bo
     simpa [IsPseudorandomTo, hEq] using hPR obs hObs
 
 noncomputable def observerEdist (O : ObserverClass n) (f g : BoolFun n) : ENNReal :=
-  ObserverDistance.edist (observerTests (n := n) O) f g
+  ObserverDistance.observerEdist (observerTests (n := n) O) f g
 
 theorem observerEdist_eq_zero_iff (O : ObserverClass n) (f g : BoolFun n) :
     observerEdist (n := n) O f g = 0 ↔ IndistinguishableTo (n := n) O f g := by
   simpa [observerEdist, IndistinguishableTo, observerTests] using
     (ObserverDistance.edist_eq_zero_iff_areIndistinguishable (T := observerTests (n := n) O)
       (x := f) (y := g))
+
+/-! ### Lipschitz / nonexpansive API
+
+Each observer/test is automatically `1`-Lipschitz with respect to the observer-induced distance.
+This lets us express many “composition/refinement preserves indistinguishability” arguments
+as generic Lipschitz/nonexpansive reasoning.
+-/
+
+theorem lipschitzWith_observe (O : ObserverClass n) (obs : BoundedObserver n) (hObs : obs ∈ O) :
+    letI : PseudoEMetricSpace (BoolFun n) :=
+      ObserverDistance.pseudoEMetricSpace (T := observerTests (n := n) O)
+    _root_.LipschitzWith (1 : NNReal) (fun f : BoolFun n => obs.observe f) := by
+  -- `obs.observe` is one of the tests defining `observerEdist`.
+  classical
+  simpa [observerTests] using
+    (ObserverDistance.lipschitzWith_testsOf (O := O)
+      (eval := fun o : BoundedObserver n => o.observe) obs hObs)
+
+theorem edist_observe_le_observerEdist (O : ObserverClass n) (obs : BoundedObserver n) (hObs : obs ∈ O)
+    (f g : BoolFun n) :
+    EDist.edist (obs.observe f) (obs.observe g) ≤ observerEdist (n := n) O f g := by
+  classical
+  -- Unfold as a single-test bound in the `iSup`.
+  simpa [observerEdist, observerTests] using
+    (ObserverDistance.edist_test_le (T := observerTests (n := n) O) (t := obs.observe) ⟨obs, hObs, rfl⟩ f g)
+
+/-- A map on functions is nonexpansive w.r.t. `observerEdist` if it is `1`-Lipschitz. -/
+def IsNonexpansiveTo (O : ObserverClass n) (φ : BoolFun n → BoolFun n) : Prop :=
+  letI : PseudoEMetricSpace (BoolFun n) :=
+    ObserverDistance.pseudoEMetricSpace (T := observerTests (n := n) O)
+  _root_.LipschitzWith (1 : NNReal) φ
+
+theorem indistinguishableTo_map_of_isNonexpansive (O : ObserverClass n) {φ : BoolFun n → BoolFun n}
+    (hφ : IsNonexpansiveTo (n := n) O φ) {f g : BoolFun n}
+    (hfg : IndistinguishableTo (n := n) O f g) :
+    IndistinguishableTo (n := n) O (φ f) (φ g) := by
+  classical
+  -- Switch to the metric characterization: `edist = 0` is the kernel.
+  have h0 : observerEdist (n := n) O f g = 0 :=
+    (observerEdist_eq_zero_iff (n := n) O f g).2 hfg
+  -- Apply Lipschitz to preserve `edist = 0`.
+  letI : PseudoEMetricSpace (BoolFun n) :=
+    ObserverDistance.pseudoEMetricSpace (T := observerTests (n := n) O)
+  have hφ' : _root_.LipschitzWith (1 : NNReal) φ := by
+    simpa [IsNonexpansiveTo] using hφ
+  have h0' : EDist.edist (φ f) (φ g) = 0 :=
+    LipschitzWith.edist_eq_zero (hf := hφ') (x := f) (y := g) (by simpa [observerEdist] using h0)
+  -- Convert back.
+  exact (observerEdist_eq_zero_iff (n := n) O (φ f) (φ g)).1 (by simpa [observerEdist] using h0')
 
 /-! ### Approximate / robust indistinguishability via `observerEdist` -/
 
@@ -66,10 +113,8 @@ theorem EpsilonIndistinguishableTo_iff (O : ObserverClass n) {ε : ℝ} (hε : 0
   constructor
   · intro h obs hObs
     have hle : ENNReal.ofReal ‖obs.observe f - obs.observe g‖ ≤ observerEdist (n := n) O f g := by
-      -- Unfold as `iSup`, then choose the test `obs.observe`.
-      -- `obs.observe ∈ testsOf O _` by definition.
-      exact le_iSup (fun t : {h // h ∈ observerTests (n := n) O} =>
-        ENNReal.ofReal ‖t.1 f - t.1 g‖) ⟨obs.observe, ⟨obs, hObs, rfl⟩⟩
+      simpa [edist_dist, dist_eq_norm] using
+        (edist_observe_le_observerEdist (n := n) O obs hObs f g)
     have hle' : ENNReal.ofReal ‖obs.observe f - obs.observe g‖ ≤ ENNReal.ofReal ε :=
       le_trans hle h
     have : ‖obs.observe f - obs.observe g‖ ≤ ε :=
@@ -90,10 +135,7 @@ theorem EpsilonIndistinguishableTo_iff (O : ObserverClass n) {ε : ℝ} (hε : 0
 
 theorem epsilonIndistinguishableTo_zero_iff (O : ObserverClass n) (f g : BoolFun n) :
     EpsilonIndistinguishableTo (n := n) O 0 f g ↔ IndistinguishableTo (n := n) O f g := by
-  -- `edist ≤ 0` iff `edist = 0`.
-  have : observerEdist (n := n) O f g ≤ (0 : ENNReal) ↔ observerEdist (n := n) O f g = 0 :=
-    ⟨fun h => le_antisymm h (zero_le _), fun h => h.le⟩
-  simp [EpsilonIndistinguishableTo, ENNReal.ofReal_zero, observerEdist_eq_zero_iff, this]
+  simp [EpsilonIndistinguishableTo, observerEdist_eq_zero_iff]
 
 /-! ### Robust pseudorandomness: stability under perturbations -/
 
@@ -140,6 +182,18 @@ abbrev ObservableQuotient (O : ObserverClass n) : Type _ :=
 
 abbrev toObservableQuotient (O : ObserverClass n) (f : BoolFun n) : ObservableQuotient (n := n) O :=
   Quotient.mk (indistinguishabilitySetoid (n := n) O) f
+
+/-- A nonexpansive map on `BoolFun n` descends to a well-defined map on the observable quotient. -/
+noncomputable def mapOnObservableQuotient (O : ObserverClass n) (φ : BoolFun n → BoolFun n)
+    (hφ : IsNonexpansiveTo (n := n) O φ) :
+    ObservableQuotient (n := n) O → ObservableQuotient (n := n) O :=
+  Quotient.map (fun f => φ f) (by
+    intro f g hfg
+    have hfg' : IndistinguishableTo (n := n) O f g := by
+      simpa [indistinguishabilitySetoid, IndistinguishableTo, observerTests] using hfg
+    have hmap : IndistinguishableTo (n := n) O (φ f) (φ g) :=
+      indistinguishableTo_map_of_isNonexpansive (n := n) O (φ := φ) hφ hfg'
+    simpa [indistinguishabilitySetoid, IndistinguishableTo, observerTests] using hmap)
 
 theorem toObservableQuotient_eq_iff (O : ObserverClass n) (f g : BoolFun n) :
     toObservableQuotient (n := n) O f = toObservableQuotient (n := n) O g ↔

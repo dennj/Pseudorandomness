@@ -16,6 +16,7 @@
 import Mathlib.Analysis.Normed.Group.Basic
 import Mathlib.Data.ENNReal.Real
 import Mathlib.Topology.EMetricSpace.Basic
+import Mathlib.Topology.EMetricSpace.Lipschitz
 
 namespace Pseudorandomness
 
@@ -68,25 +69,37 @@ section EDist
 
 variable {α β : Type*} [NormedAddCommGroup β]
 
-noncomputable def edist (T : Set (α → β)) (x y : α) : ENNReal :=
+noncomputable def observerEdist (T : Set (α → β)) (x y : α) : ENNReal :=
   ⨆ t : {f // f ∈ T}, ENNReal.ofReal ‖t.1 x - t.1 y‖
 
-@[simp] theorem edist_self (T : Set (α → β)) (x : α) : edist T x x = 0 := by
+theorem edist_test_le (T : Set (α → β)) {t : α → β} (ht : t ∈ T) (x y : α) :
+    EDist.edist (t x) (t y) ≤ observerEdist T x y := by
+  -- `observerEdist T x y` is the `iSup` over all tests, so each individual test is bounded by it.
   classical
-  simp [edist]
+  have hle :
+      ENNReal.ofReal ‖t x - t y‖ ≤ observerEdist T x y := by
+    exact
+      le_iSup (fun s : {f // f ∈ T} => ENNReal.ofReal ‖s.1 x - s.1 y‖) ⟨t, ht⟩
+  -- Rewrite the codomain `edist` in terms of the norm.
+  simpa [edist_dist, dist_eq_norm] using hle
 
-@[simp] theorem edist_comm (T : Set (α → β)) (x y : α) : edist T x y = edist T y x := by
+@[simp] theorem edist_self (T : Set (α → β)) (x : α) : observerEdist T x x = 0 := by
   classical
-  simp [edist, norm_sub_rev]
+  simp [observerEdist]
+
+@[simp] theorem edist_comm (T : Set (α → β)) (x y : α) :
+    observerEdist T x y = observerEdist T y x := by
+  classical
+  simp [observerEdist, norm_sub_rev]
 
 theorem edist_triangle (T : Set (α → β)) (x y z : α) :
-    edist T x z ≤ edist T x y + edist T y z := by
+    observerEdist T x z ≤ observerEdist T x y + observerEdist T y z := by
   classical
   refine iSup_le ?_
   intro t
-  have hxy : ENNReal.ofReal ‖t.1 x - t.1 y‖ ≤ edist T x y := by
+  have hxy : ENNReal.ofReal ‖t.1 x - t.1 y‖ ≤ observerEdist T x y := by
     exact le_iSup (fun s : {f // f ∈ T} => ENNReal.ofReal ‖s.1 x - s.1 y‖) t
-  have hyz : ENNReal.ofReal ‖t.1 y - t.1 z‖ ≤ edist T y z := by
+  have hyz : ENNReal.ofReal ‖t.1 y - t.1 z‖ ≤ observerEdist T y z := by
     exact le_iSup (fun s : {f // f ∈ T} => ENNReal.ofReal ‖s.1 y - s.1 z‖) t
   have htri :
       ‖t.1 x - t.1 z‖ ≤ ‖t.1 x - t.1 y‖ + ‖t.1 y - t.1 z‖ := by
@@ -107,22 +120,23 @@ theorem edist_triangle (T : Set (α → β)) (x y z : α) :
     ENNReal.ofReal ‖t.1 x - t.1 z‖
         ≤ ENNReal.ofReal ‖t.1 x - t.1 y‖ + ENNReal.ofReal ‖t.1 y - t.1 z‖ := by
             simpa [hsum] using htri'
-    _ ≤ edist T x y + edist T y z := by
+    _ ≤ observerEdist T x y + observerEdist T y z := by
           exact add_le_add hxy hyz
 
 noncomputable def pseudoEMetricSpace (T : Set (α → β)) : PseudoEMetricSpace α where
-  edist := edist T
+  edist := observerEdist T
   edist_self := ObserverDistance.edist_self (T := T)
   edist_comm := ObserverDistance.edist_comm (T := T)
   edist_triangle := ObserverDistance.edist_triangle (T := T)
 
 theorem edist_eq_zero_iff_norm {T : Set (α → β)} {x y : α} :
-    edist T x y = 0 ↔ ∀ t ∈ T, ‖t x - t y‖ = 0 := by
+    observerEdist T x y = 0 ↔ ∀ t ∈ T, ‖t x - t y‖ = 0 := by
   classical
   constructor
   · intro h t ht
-    have ht' : ENNReal.ofReal ‖t x - t y‖ ≤ edist T x y := by
-      exact le_iSup (fun s : {f // f ∈ T} => ENNReal.ofReal ‖s.1 x - s.1 y‖) ⟨t, ht⟩
+    have ht' : ENNReal.ofReal ‖t x - t y‖ ≤ observerEdist T x y := by
+      exact
+        le_iSup (fun s : {f // f ∈ T} => ENNReal.ofReal ‖s.1 x - s.1 y‖) ⟨t, ht⟩
     have hle0 : ENNReal.ofReal ‖t x - t y‖ ≤ 0 := by
       simpa [h] using ht'
     have hz : ENNReal.ofReal ‖t x - t y‖ = 0 := le_antisymm hle0 (zero_le _)
@@ -140,7 +154,7 @@ theorem edist_eq_zero_iff_norm {T : Set (α → β)} {x y : α} :
     · exact zero_le _
 
 theorem edist_eq_zero_iff_areIndistinguishable {T : Set (α → β)} {x y : α} :
-    edist T x y = 0 ↔ AreIndistinguishable T x y := by
+    observerEdist T x y = 0 ↔ AreIndistinguishable T x y := by
   classical
   constructor
   · intro h t ht
@@ -156,5 +170,43 @@ theorem edist_eq_zero_iff_areIndistinguishable {T : Set (α → β)} {x y : α} 
 end EDist
 
 end ObserverDistance
+
+/-! ### Lipschitz / nonexpansive API
+
+Each test is automatically `1`-Lipschitz with respect to the observer-induced
+`PseudoEMetricSpace` (built from `observerEdist`).
+-/
+
+section Lipschitz
+
+variable {α β : Type*} [NormedAddCommGroup β]
+
+theorem ObserverDistance.lipschitzWith_test (T : Set (α → β)) {t : α → β} (ht : t ∈ T) :
+    letI : PseudoEMetricSpace α := ObserverDistance.pseudoEMetricSpace (T := T)
+    _root_.LipschitzWith (1 : NNReal) t := by
+  classical
+  intro x y
+  change
+    EDist.edist (t x) (t y) ≤
+      ((1 : NNReal) : ENNReal) * ObserverDistance.observerEdist T x y
+  simpa using (ObserverDistance.edist_test_le (T := T) ht x y)
+
+theorem ObserverDistance.lipschitzWith_testsOf {ι α β : Type*} [NormedAddCommGroup β]
+    (O : Set ι) (eval : ι → α → β) (obs : ι) (hObs : obs ∈ O) :
+    let T := testsOf O eval
+    letI : PseudoEMetricSpace α := ObserverDistance.pseudoEMetricSpace (T := T)
+    _root_.LipschitzWith (1 : NNReal) (eval obs) := by
+  classical
+  have ht : eval obs ∈ testsOf O eval := ⟨obs, hObs, rfl⟩
+  simpa [testsOf] using (ObserverDistance.lipschitzWith_test (T := testsOf O eval) ht)
+
+end Lipschitz
+
+theorem LipschitzWith.edist_eq_zero {α β : Type*} [PseudoEMetricSpace α] [PseudoEMetricSpace β]
+    {K : NNReal} {f : α → β} (hf : _root_.LipschitzWith K f) {x y : α} (hxy : EDist.edist x y = 0) :
+    EDist.edist (f x) (f y) = 0 := by
+  have hle : EDist.edist (f x) (f y) ≤ (K : ENNReal) * EDist.edist x y := hf x y
+  have : (K : ENNReal) * EDist.edist x y = 0 := by simp [hxy]
+  exact le_antisymm (hle.trans (by simp [this])) (zero_le _)
 
 end Pseudorandomness
