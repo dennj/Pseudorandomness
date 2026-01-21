@@ -24,33 +24,36 @@ namespace Pseudorandomness
 
 /-! ## Axiom Inventory
 
-The Pseudorandomness framework uses the following axioms (13 total).
+The Pseudorandomness framework currently uses the following axioms (14 total).
 
 **IMPORTANT**: The three barrier theorems (relativization, algebrization,
 natural proofs) require NO axioms. They are direct corollaries of the
 Observer Barrier theorem, which is proven from first principles.
 
-### Circuit Axioms (Circuits.lean) - 10 axioms
-1. `circuit_exists` - Every function has a circuit of size ≤ 2^n
-2. `IsExplicit` - Predicate for explicit (E-computable) functions
-3. `explicit_closed_and` - Explicit functions closed under AND
-4. `explicit_const_true` - Constant true is explicit
-5. `explicit_const_false` - Constant false is explicit
-6. `explicit_nontrivial_exists` - Non-trivial explicit functions exist
-7. `not_all_explicit` - Not all functions are explicit
-8. `PHCollapses` - Polynomial hierarchy collapse predicate
-9. `ph_does_not_collapse` - Standard assumption: ¬PHCollapses
-10. `karp_lipton` - Karp-Lipton theorem
+### Circuit Foundations (Foundations/Circuits.lean) - 7 axioms
+1. `IsExplicit` - Predicate for explicit (E-computable) functions
+2. `explicit_const_true` - Constant true is explicit
+3. `explicit_const_false` - Constant false is explicit
+4. `not_all_explicit` - Not all functions are explicit
+5. `PHCollapses` - Polynomial hierarchy collapse predicate
+6. `ph_does_not_collapse` - Standard assumption: ¬PHCollapses
+7. `karp_lipton` - Karp-Lipton theorem
 
-### Shannon Counting (StrongProofTechnique.lean) - 1 axiom
-11. `exponential_dominates_polynomial` - 2^n/n dominates n^k asymptotically
+### Growth Bound (StrongProofTechnique.lean) - 1 axiom
+8. `exponential_dominates_polynomial` - 2^n/n dominates n^k asymptotically
     **Justification**: Standard analysis/calculus result.
 
 ### Example Soundness Axioms (Examples/) - 2 axioms
-12. `diagonalization_soundness` - Diagonalization produces 1-query distinguisher
+9. `diagonalization_soundness` - Diagonalization produces 1-query distinguisher
     **Justification**: The diagonal argument checks f(i) vs Mᵢ(i), which is 1 query.
-13. `counting_soundness` - Counting produces poly-time distinguisher
+10. `counting_soundness` - Counting produces poly-time distinguisher
     **Justification**: Circuit evaluation is poly-time computable.
+
+### Number Theory Bridge Axioms (Applications/NumberTheoryBridge.lean) - 4 axioms
+11. `green_tao_nilsystem_bridge` - Connects nilsystems to pseudorandomness
+12. `mullner_automatic_bridge` - Automatic sequences ↔ pseudorandomness
+13. `bourgain_sarnak_ziegler_bridge` - Möbius disjointness bridge
+14. `chowla_implies_sarnak` - Chowla ⇒ Sarnak implication
 
 ### Barrier Instance Files - 0 axioms!
 The barrier files contain NO axioms. They prove:
@@ -88,15 +91,15 @@ Together: the barriers hold.
 
 **Proof sketch**:
 
-All axioms are instantiated by the standard Turing machine / Boolean circuit
- model. Each has a proof in the literature:
+All axioms are intended to be instantiated by the standard Turing machine / Boolean circuit model.
+Each has a proof (or standard justification) in the literature:
 
-1. `circuit_exists`: Shannon-Lupanov (1949, 1958)
-2. `explicit_*`: Standard computability theory
-3. `exponential_dominates_polynomial`: Standard analysis (L'Hôpital's rule)
-4. `diagonalization_soundness`: Diagonal argument structure
-5. `counting_soundness`: Circuit evaluation is in P
-6. `PHCollapses`, `karp_lipton`: Standard complexity theory (Karp-Lipton 1980)
+1. `explicit_*`: Standard computability theory
+2. `exponential_dominates_polynomial`: Standard analysis (L'Hôpital's rule)
+3. `diagonalization_soundness`: Diagonal argument structure
+4. `counting_soundness`: Circuit evaluation is in P
+5. `PHCollapses`, `karp_lipton`: Standard complexity theory (Karp-Lipton 1980)
+6. `*_bridge` axioms: standard analytic/number-theoretic results (as cited in `Applications/NumberTheoryBridge.lean`)
 
 ### Key Observation
 
