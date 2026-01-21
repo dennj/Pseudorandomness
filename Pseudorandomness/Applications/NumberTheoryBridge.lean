@@ -49,14 +49,18 @@ import Mathlib.NumberTheory.ArithmeticFunction.Moebius
 import Mathlib.Data.Real.Basic
 import Mathlib.Data.Complex.Basic
 import Mathlib.Topology.Basic
+import Mathlib.Topology.Order.Basic
+import Mathlib.Topology.MetricSpace.Pseudo.Lemmas
 import Mathlib.Algebra.BigOperators.Group.Finset.Defs
 import Mathlib.Data.Fintype.BigOperators
 import Mathlib.Data.Nat.Factorization.Basic
+import Mathlib.Order.Filter.AtTopBot.Basic
 
 namespace NumberTheory
 
 open scoped BigOperators
 open ArithmeticFunction
+open Filter
 
 /-! ## Arithmetic Functions as Objects of Study
 
@@ -234,6 +238,54 @@ def correlation (a : ArithmeticSequence) (obs : DynamicalObserver) (N : ℕ) : �
 def IsPseudorandomToNT (a : ArithmeticSequence) (O : NTObserverClass) : Prop :=
   ∀ obs ∈ O, ∀ ε > 0, ∃ N₀ : ℕ, ∀ N ≥ N₀,
     |correlation a obs N| < ε
+
+theorem isPseudorandomToNT_iff_tendsto (a : ArithmeticSequence) (O : NTObserverClass) :
+    IsPseudorandomToNT a O ↔ ∀ obs ∈ O, Tendsto (fun N => correlation a obs N) atTop (nhds 0) := by
+  constructor
+  · intro h obs hObs
+    -- Use `tendsto_atTop'` and the fact that neighborhoods contain an open interval around `0`.
+    rw [tendsto_atTop']
+    intro s hs
+    rcases (mem_nhds_iff_exists_Ioo_subset).1 hs with ⟨l, u, h0, hsub⟩
+    have hl0 : l < (0 : ℝ) := h0.1
+    have h0u : (0 : ℝ) < u := h0.2
+    let δ : ℝ := min (-l) u / 2
+    have hδpos : 0 < δ := by
+      have hminpos : 0 < min (-l) u := lt_min (by linarith) h0u
+      have : 0 < min (-l) u / 2 := by nlinarith
+      simpa [δ] using this
+    obtain ⟨N₀, hN₀⟩ := h obs hObs δ hδpos
+    refine ⟨N₀, ?_⟩
+    intro N hN
+    have hAbs : |correlation a obs N| < δ := hN₀ N hN
+    have hδlt : δ < min (-l) u := by
+      have hminpos : 0 < min (-l) u := lt_min (by linarith) h0u
+      have : min (-l) u / 2 < min (-l) u := by
+        simpa [div_eq_mul_inv] using (half_lt_self hminpos)
+      simpa [δ] using this
+    have hδlt_neg : δ < -l := lt_of_lt_of_le hδlt (min_le_left _ _)
+    have hδlt_u : δ < u := lt_of_lt_of_le hδlt (min_le_right _ _)
+    have hl_negδ : l < -δ := by
+      -- from `δ < -l`, negate both sides
+      have := neg_lt_neg hδlt_neg
+      simpa [neg_neg] using this
+    have hmemIoo : correlation a obs N ∈ Set.Ioo l u := by
+      have hlt : -δ < correlation a obs N ∧ correlation a obs N < δ := by
+        simpa [abs_lt] using hAbs
+      exact ⟨hl_negδ.trans hlt.1, lt_trans hlt.2 hδlt_u⟩
+    exact hsub hmemIoo
+  · intro h obs hObs ε hε
+    have hT : Tendsto (fun N => correlation a obs N) atTop (nhds (0 : ℝ)) := h obs hObs
+    -- Use neighborhood `(-ε, ε)` around `0`.
+    have hnhds : Set.Ioo (-ε) ε ∈ nhds (0 : ℝ) := Ioo_mem_nhds (by linarith) (by linarith)
+    rcases (tendsto_atTop'.1 hT) _ hnhds with ⟨N₀, hN₀⟩
+    refine ⟨N₀, ?_⟩
+    intro N hN
+    have hmem : correlation a obs N ∈ Set.Ioo (-ε) ε := hN₀ N hN
+    have : |correlation a obs N| < ε := by
+      -- `x ∈ (-ε, ε)` iff `|x| < ε`.
+      simpa [abs_lt] using hmem
+    exact this
 
 /--
   **DistinguishesNT**: An observer distinguishes sequence a from random

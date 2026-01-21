@@ -40,6 +40,7 @@
 import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
 import Mathlib.LinearAlgebra.Dimension.Finrank
 import Mathlib.Data.Fin.VecNotation
+import Pseudorandomness.Foundations.ObserverDistance
 
 namespace ControlTheory
 
@@ -288,6 +289,15 @@ def applyObserver (obs : OutputObserver sys) (x₀ : Fin n → 𝕜) : 𝕜 :=
 -/
 def IsPseudorandomToOutputs (x : Fin n → 𝕜) : Prop :=
   ∀ obs : OutputObserver sys, sys.applyObserver obs x = sys.applyObserver obs 0
+
+theorem isPseudorandomToOutputs_iff_kernel (x : Fin n → 𝕜) :
+    sys.IsPseudorandomToOutputs x ↔
+      Pseudorandomness.ObserverDistance.AreIndistinguishable
+        (Pseudorandomness.ObserverDistance.testsOf (Set.univ)
+          (fun obs : OutputObserver sys => sys.applyObserver obs))
+        x 0 := by
+  -- `testsOf Set.univ` is just the set of all output-observation functionals.
+  simp [IsPseudorandomToOutputs, Pseudorandomness.ObserverDistance.areIndistinguishable_testsOf_iff]
 
 /--
   Observer that extracts the (t, i) component of the output.

@@ -13,6 +13,8 @@
 -/
 
 import Pseudorandomness.Foundations.BooleanFunction
+import Pseudorandomness.Foundations.BooleanFunctionDistance
+import Pseudorandomness.Foundations.ObserverDistance
 
 -- Re-export everything from Foundations
 -- All definitions are available in Pseudorandomness namespace

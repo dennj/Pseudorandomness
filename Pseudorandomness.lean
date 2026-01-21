@@ -65,7 +65,7 @@
      (BarrierInstances/NaturalProofs.lean:143)
 
   7. `carmosino_from_observer_barrier`: Natural Proofs ↔ Learning derived from first principles
-     (Applications/CarmosinoEquivalence.lean)
+     (Applications/MachineLearningBridge.lean)
 
   ## References
 
@@ -77,6 +77,7 @@
 -- Core framework
 import Pseudorandomness.Core.ObserverBarrier
 import Pseudorandomness.Core.ProofTechnique
+import Pseudorandomness.Foundations.Crypto
 
 -- The three classical barriers as corollaries
 import Pseudorandomness.BarrierInstances.Relativization
@@ -88,7 +89,7 @@ import Pseudorandomness.ObserverClasses.Hierarchy
 
 -- Applications
 import Pseudorandomness.Applications.PvsNP
-import Pseudorandomness.Applications.CarmosinoEquivalence
+import Pseudorandomness.Applications.MachineLearningBridge
 import Pseudorandomness.Applications.ControlTheoryBridge
 
 namespace ObserverBarrierTheory
@@ -167,7 +168,7 @@ directly from the observer barrier framework.
 Both natural proofs and learning reduce to **distinguishing from random**.
 The observer barrier blocks both simultaneously when pseudorandom functions exist.
 
-Key theorems in `Applications/CarmosinoEquivalence.lean`:
+Key theorems in `Applications/MachineLearningBridge.lean`:
 
 - `CircuitClass.carmosino_from_observer_barrier`: If PRFs exist, there exists
   a function that blocks both natural proofs and learning.

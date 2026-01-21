@@ -76,9 +76,7 @@ theorem relativization_barrier_universal {n : ℕ}
   intro T ⟨q, hBounded⟩
   obtain ⟨f, hPRf⟩ := hPR q
   use f
-  intro ⟨_, obs, hObs, hDist⟩
-  have hSmall := hPRf obs (hBounded hObs)
-  exact absurd hSmall (not_lt.mpr hDist)
+  exact observer_barrier_distinguisher (QueryBoundedObservers n q) f hPRf T hBounded
 
 /--
   **Relativization Barrier (Conditional on Specific q)**
@@ -89,10 +87,8 @@ theorem relativization_barrier_universal {n : ℕ}
 theorem relativization_barrier_at_q {n q : ℕ}
     (f : BoolFun n) (hPR : IsPseudorandomTo f (QueryBoundedObservers n q))
     (T : ProofTechnique n) (hBounded : T.isOBounded (QueryBoundedObservers n q)) :
-    ¬(T.certifiesSeparation ∧ ∃ obs ∈ T.observerClass, Distinguishes obs f) := by
-  intro ⟨_, obs, hObs, hDist⟩
-  have hSmall := hPR obs (hBounded hObs)
-  exact absurd hSmall (not_lt.mpr hDist)
+  ¬(T.certifiesSeparation ∧ ∃ obs ∈ T.observerClass, Distinguishes obs f) := by
+  exact observer_barrier_distinguisher (QueryBoundedObservers n q) f hPR T hBounded
 
 /--
   **What the relativization barrier says**:
@@ -110,7 +106,6 @@ theorem relativization_barrier_implication (n q : ℕ) :
   intro ⟨f, hPR⟩
   use f
   intro T hBounded obs hObs hDist
-  have hSmall := hPR obs (hBounded hObs)
-  exact absurd hSmall (not_lt.mpr hDist)
+  exact (not_distinguishes_of_isPseudorandomTo hPR (hBounded hObs)) hDist
 
 end Pseudorandomness

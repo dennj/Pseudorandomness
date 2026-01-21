@@ -104,8 +104,7 @@ theorem hypothetical_blocked_if_polytime_pr
   -- But f is pseudorandom to PolyTime, so obs cannot distinguish it
   intro hEq
   rw [← hEq] at hDist
-  have hSmall := hPRf obs hObs
-  exact absurd hSmall (not_lt.mpr hDist)
+  exact (not_distinguishes_of_isPseudorandomTo hPRf hObs) hDist
 
 /-! ## Conclusion -/
 

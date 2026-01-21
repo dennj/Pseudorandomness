@@ -90,8 +90,9 @@ theorem no_certification_if_all_pseudorandom (T : ProofTechnique n)
     ¬T.certifiesSeparation := by
   intro hCert
   obtain ⟨f, obs, hObs, hDist⟩ := T.soundness hCert
-  have hSmall := hAll f obs hObs
-  exact absurd hSmall (not_lt.mpr hDist)
+  have hDist' : Distinguishes obs f := by
+    simpa [Distinguishes] using hDist
+  exact (not_distinguishes_of_isPseudorandomTo (hAll f) hObs) hDist'
 
 end ProofTechnique
 

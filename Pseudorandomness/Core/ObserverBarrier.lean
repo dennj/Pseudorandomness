@@ -52,12 +52,80 @@ theorem observer_barrier (O : ObserverClass n)
   intro T hBounded ⟨_hCert, obs, hObs, hDist⟩
   -- obs ∈ T.observerClass ⊆ O
   have hObsInO : obs ∈ O := hBounded hObs
-  -- f is pseudorandom to O, so obs cannot distinguish
-  have hSmall := hPR obs hObsInO
-  -- hSmall: |obs.observe f - obs.randomExpectation| < 1/obs.bound
-  -- hDist:  |obs.observe f - obs.randomExpectation| ≥ 1/obs.bound
-  -- Direct contradiction!
-  exact absurd hSmall (not_lt.mpr hDist)
+  have hDist' : Distinguishes obs f := by
+    simpa [Distinguishes] using hDist
+  exact (not_distinguishes_of_isPseudorandomTo hPR hObsInO) hDist'
+
+/-! ## Barrier (Distinguishes form) -/
+
+theorem observer_barrier_distinguisher (O : ObserverClass n)
+    (f : BoolFun n) (hPR : IsPseudorandomTo f O) :
+    ∀ T : ProofTechnique n, T.isOBounded O →
+      ¬(T.certifiesSeparation ∧ ∃ obs ∈ T.observerClass, Distinguishes obs f) := by
+  intro T hBounded
+  -- Rewrite the goal to the inequality form and apply the main theorem.
+  simpa [Distinguishes] using (observer_barrier (n := n) O f hPR T hBounded)
+
+/-! ## Robust / approximate barriers
+
+These versions use the observer-induced distance `observerEdist` to express stability under
+small perturbations/noise.
+-/
+
+theorem observer_barrier_withMargin (O : ObserverClass n)
+    (f : BoolFun n) (ε : ℝ) (hPR : IsPseudorandomToWithSlack f O ε) :
+    ∀ T : ProofTechnique n, T.isOBounded O →
+      ¬(T.certifiesSeparation ∧ ∃ obs ∈ T.observerClass, DistinguishesWithMargin obs f ε) := by
+  intro T hBounded ⟨_hCert, obs, hObs, hDist⟩
+  have hObsInO : obs ∈ O := hBounded hObs
+  have hNo := (pseudorandomWithSlack_iff_no_distinguisher_withMargin (n := n) f O ε).1 hPR
+  exact (hNo obs hObsInO) hDist
+
+/--
+If `g` is pseudorandom to `O` and `f` is within `ε` of `g` in the observer-induced distance,
+then no `O`-bounded proof technique can distinguish `f` with *margin* `ε`.
+
+This is a noise-stability statement: distinguishing must exceed the perturbation level.
+-/
+theorem observer_barrier_robust (O : ObserverClass n)
+    (g f : BoolFun n) {ε : ℝ} (hε : 0 ≤ ε)
+    (hPR : IsPseudorandomTo g O)
+    (hclose : BooleanFunctionDistance.observerEdist (n := n) O f g ≤ ENNReal.ofReal ε) :
+    ∀ T : ProofTechnique n, T.isOBounded O →
+      ¬(T.certifiesSeparation ∧ ∃ obs ∈ T.observerClass, DistinguishesWithMargin obs f ε) := by
+  have hPRε : IsPseudorandomToWithSlack f O ε :=
+    BooleanFunctionDistance.isPseudorandomToWithSlack_of_observerEdist_le (n := n) O
+      (f := f) (g := g) hε hclose hPR
+  exact observer_barrier_withMargin (n := n) O f ε hPRε
+
+/-! ## Barrier (quotient form)
+
+This version makes explicit that *everything observable to `O`* factors through the quotient
+`BoolFun n ⧸ IndistinguishableTo O`.
+-/
+
+theorem observer_barrier_onQuotient (O : ObserverClass n)
+    (q : BooleanFunctionDistance.ObservableQuotient (n := n) O)
+    (hPR : BooleanFunctionDistance.isPseudorandomToOnQuotient (n := n) O q) :
+    ∀ T : ProofTechnique n, ∀ hBounded : T.isOBounded O,
+      ¬(T.certifiesSeparation ∧
+        ∃ obs : BoundedObserver n, ∃ hObs : obs ∈ T.observerClass,
+          BooleanFunctionDistance.distinguishesOnQuotient (n := n) O obs (hBounded hObs) q) := by
+  classical
+  intro T hBounded
+  revert hPR
+  refine Quotient.inductionOn q ?_
+  intro f hPR hContra
+  rcases hContra with ⟨hCert, obs, hObs, hDistQ⟩
+  have hPRf : IsPseudorandomTo f O := by
+    simpa [BooleanFunctionDistance.isPseudorandomToOnQuotient,
+      BooleanFunctionDistance.toObservableQuotient] using hPR
+  have hDist : Distinguishes obs f := by
+    simpa [BooleanFunctionDistance.distinguishesOnQuotient,
+      BooleanFunctionDistance.toObservableQuotient] using hDistQ
+  have hBlocked : ¬(T.certifiesSeparation ∧ ∃ obs ∈ T.observerClass, Distinguishes obs f) :=
+    observer_barrier_distinguisher (n := n) O f hPRf T hBounded
+  exact hBlocked ⟨hCert, obs, hObs, hDist⟩
 
 /-! ## Unified Barrier (Existential Form) -/
 
@@ -82,11 +150,9 @@ theorem unified_barrier (O : ObserverClass n) :
   obtain ⟨obs, hObs, hDist⟩ := hDistinguishes f hPR
   -- But f is pseudorandom to O, and obs ∈ T.observerClass ⊆ O
   have hObsInO : obs ∈ O := hBounded hObs
-  have hSmall := hPR obs hObsInO
-  -- hSmall: |obs.observe f - obs.randomExpectation| < 1/obs.bound
-  -- hDist:  |obs.observe f - obs.randomExpectation| ≥ 1/obs.bound
-  -- Contradiction!
-  exact absurd hSmall (not_lt.mpr hDist)
+  have hDist' : Distinguishes obs f := by
+    simpa [Distinguishes] using hDist
+  exact (not_distinguishes_of_isPseudorandomTo hPR hObsInO) hDist'
 
 /-! ## Contrapositive Forms -/
 
@@ -104,8 +170,9 @@ theorem technique_breaks_pseudorandomness (T : ProofTechnique n)
   obtain ⟨f, obs, hObs, hDist⟩ := T.soundness hCert
   use f
   intro hPR
-  have hSmall := hPR obs hObs
-  exact absurd hSmall (not_lt.mpr hDist)
+  have hDist' : Distinguishes obs f := by
+    simpa [Distinguishes] using hDist
+  exact (not_distinguishes_of_isPseudorandomTo hPR hObs) hDist'
 
 /--
   **Barrier Existence Theorem**
@@ -191,8 +258,7 @@ theorem barrier_strengthening {T : ProofTechnique n} {O₁ O₂ : ObserverClass 
       ∃ obs ∈ T.observerClass, Distinguishes obs f) := by
   have hPR₁ : IsPseudorandomTo f O₁ := pseudorandom_subset hSub hPR
   intro ⟨_, obs, hObs, hDist⟩
-  have hSmall := hPR₁ obs (hBound hObs)
-  exact absurd hSmall (not_lt.mpr hDist)
+  exact (not_distinguishes_of_isPseudorandomTo hPR₁ (hBound hObs)) hDist
 
 /-! ## What These Theorems Say -/
 

@@ -374,8 +374,7 @@ theorem cannot_distinguish_pseudorandom (T : StrongProofTechnique n)
   · -- If witness = f, then f is distinguished, but...
     left
     intro hDist
-    have hSmall := hPR T.witnessObserver (hBounded T.witnessInClass)
-    exact absurd hSmall (not_lt.mpr hDist)
+    exact (not_distinguishes_of_isPseudorandomTo hPR (hBounded T.witnessInClass)) hDist
   · right
     exact hEq
 
@@ -408,9 +407,7 @@ theorem strong_natural_proofs_barrier
   -- T distinguishes its witness
   have hDist := T.witnessDistinguished
   -- But the witness is pseudorandom to T's observers
-  have hSmall := hPR T.witnessObserver (hBounded T.witnessInClass)
-  -- Contradiction: distinguishing requires ≥ 1/bound, pseudorandom gives < 1/bound
-  exact absurd hSmall (not_lt.mpr hDist)
+  exact (not_distinguishes_of_isPseudorandomTo hPR (hBounded T.witnessInClass)) hDist
 
 /--
   **Corollary**: No natural technique can prove lower bounds for PRF-based functions.
@@ -428,9 +425,7 @@ theorem natural_technique_cannot_prove_prf_hardness
   intro hDist
   -- T.witnessObserver is in PolyTime(k) by boundedness
   have hIn : T.witnessObserver ∈ PolyTimeObservers n k := hBounded T.witnessInClass
-  -- By pseudorandomness, the observer cannot distinguish
-  have hSmall := hPR T.witnessObserver hIn
-  exact absurd hSmall (not_lt.mpr hDist)
+  exact (not_distinguishes_of_isPseudorandomTo hPR hIn) hDist
 
 /--
   **The Razborov-Rudich Conclusion (Strong Form)**:

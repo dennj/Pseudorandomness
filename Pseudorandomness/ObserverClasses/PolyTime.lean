@@ -27,10 +27,10 @@ variable {n : ℕ}
 
 /--
   All BoundedObservers are poly-time for some polynomial exponent.
-  This is because timeComplexity ≤ (n+1)^(algebraicDegree+1) by construction.
+  This follows from polynomial_evaluation_complexity: timeComplexity ≤ (n+1)^(algebraicDegree+1).
 -/
 theorem all_observers_polytime (obs : BoundedObserver n) :
     obs ∈ PolyTimeObservers n (obs.algebraicDegree + 1) := by
-  exact obs.degree_time_bound
+  exact polynomial_evaluation_complexity obs
 
 end Pseudorandomness

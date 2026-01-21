@@ -18,10 +18,46 @@
 
 import Pseudorandomness.Core.ObserverBarrier
 import Pseudorandomness.ObserverClasses.PolyTime
+import Pseudorandomness.Foundations.BooleanFunctionDistance
 
 namespace Pseudorandomness
 
 variable {n : ℕ}
+
+/-! ## Poly-time Indistinguishability (Observer Kernel / Distance)
+
+For the ML bridge (Carmosino), the relevant observer class is `PolyTimeObservers n k`.
+The file `Pseudorandomness/Foundations/BooleanFunctionDistance.lean` packages the
+observer-induced kernel and `edist` for *any* `ObserverClass n`.
+
+This section records the specialized form used here:
+-/
+
+namespace CircuitClass
+
+open BooleanFunctionDistance
+
+theorem indistinguishableTo_polyTime_iff (k : ℕ) (f g : BoolFun n) :
+    IndistinguishableTo (n := n) (PolyTimeObservers n k) f g ↔
+      ∀ obs ∈ PolyTimeObservers n k, obs.observe f = obs.observe g := by
+  simpa using BooleanFunctionDistance.indistinguishableTo_iff (n := n) (O := PolyTimeObservers n k)
+    (f := f) (g := g)
+
+theorem indistinguishableTo_polyTime_distinguishes_iff (k : ℕ) {f g : BoolFun n}
+    (h : IndistinguishableTo (n := n) (PolyTimeObservers n k) f g) :
+    ∀ obs ∈ PolyTimeObservers n k, Distinguishes obs f ↔ Distinguishes obs g := by
+  simpa using
+    (BooleanFunctionDistance.indistinguishableTo_distinguishes_iff (n := n)
+      (O := PolyTimeObservers n k) (f := f) (g := g) h)
+
+theorem observerEdist_polyTime_eq_zero_iff (k : ℕ) (f g : BoolFun n) :
+    BooleanFunctionDistance.observerEdist (n := n) (PolyTimeObservers n k) f g = 0 ↔
+      IndistinguishableTo (n := n) (PolyTimeObservers n k) f g := by
+  simpa using
+    BooleanFunctionDistance.observerEdist_eq_zero_iff (n := n) (O := PolyTimeObservers n k)
+      (f := f) (g := g)
+
+end CircuitClass
 
 /-! ## Circuit Classes
 
@@ -186,11 +222,9 @@ theorem pseudorandomness_blocks_both (k : ℕ)
     (∀ f : BoolFun n, ∀ obs ∈ PolyTimeObservers n k, ¬Distinguishes obs f) := by
   constructor
   · intro ⟨f, obs, hObs, hDist⟩
-    have hSmall := hPR f obs hObs
-    exact absurd hSmall (not_lt.mpr hDist)
+    exact (not_distinguishes_of_isPseudorandomTo (hPR f) hObs) hDist
   · intro f obs hObs hDist
-    have hSmall := hPR f obs hObs
-    exact absurd hSmall (not_lt.mpr hDist)
+    exact (not_distinguishes_of_isPseudorandomTo (hPR f) hObs) hDist
 
 /--
   **CARMOSINO AS OBSERVER BARRIER COROLLARY**
@@ -216,8 +250,7 @@ theorem carmosino_from_observer_barrier (k : ℕ)
   obtain ⟨f, hPR⟩ := hPRF
   use f
   intro obs hObs hDist
-  have hSmall := hPR obs hObs
-  exact absurd hSmall (not_lt.mpr hDist)
+  exact (not_distinguishes_of_isPseudorandomTo hPR hObs) hDist
 
 end CircuitClass
 

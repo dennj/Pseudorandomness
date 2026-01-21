@@ -130,7 +130,7 @@ theorem diagonalization_blocked
   use f
   -- No 1-query observer can distinguish f
   intro obs hObs
-  exact (pseudorandom_iff_no_distinguisher f _).mp hPRf obs hObs
+  exact not_distinguishes_of_isPseudorandomTo hPRf hObs
 
 /-! ## What Diagonalization CAN Do
 

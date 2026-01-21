@@ -88,9 +88,7 @@ theorem natural_proofs_barrier_universal {n : ℕ}
   intro T ⟨k, hBounded⟩
   obtain ⟨f, hPRf⟩ := hPR k
   use f
-  intro ⟨_, obs, hObs, hDist⟩
-  have hSmall := hPRf obs (hBounded hObs)
-  exact absurd hSmall (not_lt.mpr hDist)
+  exact observer_barrier_distinguisher (PolyTimeObservers n k) f hPRf T hBounded
 
 /--
   **Natural Proofs Barrier (Conditional on Specific k)**
@@ -101,10 +99,8 @@ theorem natural_proofs_barrier_universal {n : ℕ}
 theorem natural_proofs_barrier_at_k {n k : ℕ}
     (f : BoolFun n) (hPR : IsPseudorandomTo f (PolyTimeObservers n k))
     (T : ProofTechnique n) (hBounded : T.isOBounded (PolyTimeObservers n k)) :
-    ¬(T.certifiesSeparation ∧ ∃ obs ∈ T.observerClass, Distinguishes obs f) := by
-  intro ⟨_, obs, hObs, hDist⟩
-  have hSmall := hPR obs (hBounded hObs)
-  exact absurd hSmall (not_lt.mpr hDist)
+  ¬(T.certifiesSeparation ∧ ∃ obs ∈ T.observerClass, Distinguishes obs f) := by
+  exact observer_barrier_distinguisher (PolyTimeObservers n k) f hPR T hBounded
 
 /--
   **What the natural proofs barrier says**:
@@ -122,8 +118,7 @@ theorem natural_proofs_barrier_implication (n k : ℕ) :
   intro ⟨f, hPR⟩
   use f
   intro T hBounded obs hObs hDist
-  have hSmall := hPR obs (hBounded hObs)
-  exact absurd hSmall (not_lt.mpr hDist)
+  exact (not_distinguishes_of_isPseudorandomTo hPR (hBounded hObs)) hDist
 
 /-! ## Relationship to Other Barriers -/
 
@@ -177,7 +172,6 @@ theorem natural_proofs_lesson {n : ℕ}
   obtain ⟨f, hPRf⟩ := hPR k
   use f
   intro ⟨obs, hObs, hDist⟩
-  have hSmall := hPRf obs (hBounded hObs)
-  exact absurd hSmall (not_lt.mpr hDist)
+  exact (not_distinguishes_of_isPseudorandomTo hPRf (hBounded hObs)) hDist
 
 end Pseudorandomness

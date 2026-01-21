@@ -90,9 +90,7 @@ theorem barrier_blocks_technique (T : ProofTechnique n) (f : BoolFun n)
     (hPR : IsPseudorandomTo f T.observerClass) :
     ¬(∃ obs ∈ T.observerClass, Distinguishes obs f) := by
   intro ⟨obs, hObs, hDist⟩
-  have hSmall := hPR obs hObs
-  simp only [Distinguishes] at hDist
-  exact absurd hSmall (not_lt.mpr hDist)
+  exact (not_distinguishes_of_isPseudorandomTo hPR hObs) hDist
 
 /-! ## Karp-Lipton and Circuit Lower Bounds -/
 
@@ -167,17 +165,17 @@ theorem barrier_strength_for_p_vs_np
   · intro T hBounded obs hObs
     have hInPoly : obs ∈ PolyTimeObservers n (k + 2) :=
       query_subset_polytime n k (hBounded hObs)
-    exact (pseudorandom_iff_no_distinguisher f _).mp hPRf obs hInPoly
+    exact not_distinguishes_of_isPseudorandomTo hPRf hInPoly
   -- Degree-bounded techniques are blocked
   · intro T hBounded obs hObs
     have hInPoly : obs ∈ PolyTimeObservers n (k + 2) :=
       PolyTime.mono (Nat.le_add_right (k + 1) 1) (degree_subset_polytime n k (hBounded hObs))
-    exact (pseudorandom_iff_no_distinguisher f _).mp hPRf obs hInPoly
+    exact not_distinguishes_of_isPseudorandomTo hPRf hInPoly
   -- PolyTime-bounded techniques are blocked
   · intro T hBounded obs hObs
     have hInPoly : obs ∈ PolyTimeObservers n (k + 2) :=
       PolyTime.mono (Nat.le_add_right k 2) (hBounded hObs)
-    exact (pseudorandom_iff_no_distinguisher f _).mp hPRf obs hInPoly
+    exact not_distinguishes_of_isPseudorandomTo hPRf hInPoly
 
 /-! ## Summary: Why P vs NP is Hard
 
@@ -209,6 +207,6 @@ theorem p_vs_np_proof_constraints :
   intro T _ ⟨f, hPR⟩
   use f
   intro obs hObs
-  exact (pseudorandom_iff_no_distinguisher f _).mp hPR obs hObs
+  exact not_distinguishes_of_isPseudorandomTo hPR hObs
 
 end Pseudorandomness

@@ -76,9 +76,7 @@ theorem algebrization_barrier_universal {n : ℕ}
   intro T ⟨d, hBounded⟩
   obtain ⟨f, hPRf⟩ := hPR d
   use f
-  intro ⟨_, obs, hObs, hDist⟩
-  have hSmall := hPRf obs (hBounded hObs)
-  exact absurd hSmall (not_lt.mpr hDist)
+  exact observer_barrier_distinguisher (DegreeBoundedObservers n d) f hPRf T hBounded
 
 /--
   **Algebrization Barrier (Conditional on Specific d)**
@@ -89,10 +87,8 @@ theorem algebrization_barrier_universal {n : ℕ}
 theorem algebrization_barrier_at_d {n d : ℕ}
     (f : BoolFun n) (hPR : IsPseudorandomTo f (DegreeBoundedObservers n d))
     (T : ProofTechnique n) (hBounded : T.isOBounded (DegreeBoundedObservers n d)) :
-    ¬(T.certifiesSeparation ∧ ∃ obs ∈ T.observerClass, Distinguishes obs f) := by
-  intro ⟨_, obs, hObs, hDist⟩
-  have hSmall := hPR obs (hBounded hObs)
-  exact absurd hSmall (not_lt.mpr hDist)
+  ¬(T.certifiesSeparation ∧ ∃ obs ∈ T.observerClass, Distinguishes obs f) := by
+  exact observer_barrier_distinguisher (DegreeBoundedObservers n d) f hPR T hBounded
 
 /--
   **What the algebrization barrier says**:
@@ -110,8 +106,7 @@ theorem algebrization_barrier_implication (n d : ℕ) :
   intro ⟨f, hPR⟩
   use f
   intro T hBounded obs hObs hDist
-  have hSmall := hPR obs (hBounded hObs)
-  exact absurd hSmall (not_lt.mpr hDist)
+  exact (not_distinguishes_of_isPseudorandomTo hPR (hBounded hObs)) hDist
 
 /-! ## Relationship to Relativization -/
 

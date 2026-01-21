@@ -141,7 +141,7 @@ theorem counting_blocked_by_natural_proofs (k : ℕ)
   obtain ⟨f, hPR⟩ := hPRF
   use f
   intro obs hObs
-  exact (pseudorandom_iff_no_distinguisher f _).mp hPR obs hObs
+  exact not_distinguishes_of_isPseudorandomTo hPR hObs
 
 /-! ## The Counting Dilemma
 

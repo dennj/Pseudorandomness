@@ -42,8 +42,6 @@ theorem distinguisher_breaks_pseudorandom {f : BoolFun n} {O : ObserverClass n}
     {obs : BoundedObserver n} (hObs : obs ∈ O) (hDist : Distinguishes obs f) :
     ¬IsPseudorandomTo f O := by
   intro hPR
-  have hSmall := hPR obs hObs
-  simp only [Distinguishes] at hDist
-  exact absurd hSmall (not_lt.mpr hDist)
+  exact (not_distinguishes_of_isPseudorandomTo hPR hObs) hDist
 
 end Pseudorandomness

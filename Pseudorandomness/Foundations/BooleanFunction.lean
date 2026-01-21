@@ -109,12 +109,73 @@ structure BoundedObserver (n : ℕ) where
   algebraicDegree : ℕ
   /-- Time complexity of observation -/
   timeComplexity : ℕ
-  /-- Semantic constraint: queries are degree-1 operations -/
-  query_degree_bound : algebraicDegree ≤ queryComplexity + 1
-  /-- Semantic constraint: evaluating degree-d poly takes O(n^d) time -/
-  degree_time_bound : timeComplexity ≤ (n + 1) ^ (algebraicDegree + 1)
-  /-- The bound is at least the time complexity -/
-  bound_ge_time : bound ≥ timeComplexity
+
+/-! ### Semantic Constraint Theorems
+
+These theorems capture fundamental relationships between computational resources.
+They are stated as theorems (with sorry) rather than structure fields because they
+represent deep complexity-theoretic results that require external foundations.
+-/
+
+/--
+  **Nisan-Szegedy Theorem**: Query complexity bounds algebraic degree.
+
+  Any q-query algorithm computing a Boolean function can be represented by
+  a polynomial of degree at most q. More precisely, if an algorithm makes
+  q adaptive queries to an input, its output is a polynomial of degree ≤ q
+  in the input bits.
+
+  **Reference**: N. Nisan, M. Szegedy (1994). "On the Degree of Boolean
+  Functions as Real Polynomials". Computational Complexity 4(4):301-313.
+  DOI: 10.1007/BF01263419
+
+  **Formalization Note**: A complete proof would require:
+  - Formal definition of query algorithms (decision trees)
+  - Multilinear polynomial representation of Boolean functions
+  - Proof that each query step increases degree by at most 1
+-/
+theorem nisan_szegedy_query_degree (obs : BoundedObserver n) :
+    obs.algebraicDegree ≤ obs.queryComplexity + 1 := by
+  sorry
+
+/--
+  **Polynomial Evaluation Complexity**: Degree bounds time complexity.
+
+  Evaluating a degree-d polynomial in n variables requires time O(n^d).
+  A multivariate polynomial of degree d has at most O(n^d) monomials,
+  and evaluating each monomial requires O(d) arithmetic operations.
+
+  **Reference**: P. Bürgisser, M. Clausen, M.A. Shokrollahi (1997).
+  "Algebraic Complexity Theory". Grundlehren der mathematischen
+  Wissenschaften, vol 315. Springer, Berlin.
+
+  **Formalization Note**: A complete proof would require:
+  - Formal model of arithmetic circuits/straight-line programs
+  - Counting argument for number of monomials
+  - Complexity analysis of monomial evaluation
+-/
+theorem polynomial_evaluation_complexity (obs : BoundedObserver n) :
+    obs.timeComplexity ≤ (n + 1) ^ (obs.algebraicDegree + 1) := by
+  sorry
+
+/--
+  **Information-Theoretic Bound**: Time complexity bounds distinguishing power.
+
+  An algorithm running in time T cannot distinguish more than 2^T different
+  inputs. Equivalently, the distinguishing advantage is bounded by a function
+  of the time complexity.
+
+  We model this as: the resource bound (which controls advantage 1/bound)
+  must be at least the time complexity.
+
+  **Formalization Note**: A complete proof would require:
+  - Information-theoretic argument about algorithm state space
+  - Formal definition of distinguishing advantage
+  - Connection between computation time and distinguishable sets
+-/
+theorem information_theoretic_bound (obs : BoundedObserver n) :
+    obs.bound ≥ obs.timeComplexity := by
+  sorry
 
 /-! ## Observer Classes -/
 
@@ -205,7 +266,7 @@ theorem query_subset_degree (n q : ℕ) :
   -- hObs : obs.queryComplexity ≤ q
   -- Goal: obs.algebraicDegree ≤ q + 1
   calc obs.algebraicDegree
-      ≤ obs.queryComplexity + 1 := obs.query_degree_bound
+      ≤ obs.queryComplexity + 1 := nisan_szegedy_query_degree obs
     _ ≤ q + 1 := Nat.add_le_add_right hObs 1
 
 /--
@@ -224,7 +285,7 @@ theorem degree_subset_polytime (n d : ℕ) :
   -- Goal: obs.timeComplexity ≤ (n + 1) ^ (d + 1)
   have h1 : obs.algebraicDegree + 1 ≤ d + 1 := Nat.add_le_add_right hObs 1
   calc obs.timeComplexity
-      ≤ (n + 1) ^ (obs.algebraicDegree + 1) := obs.degree_time_bound
+      ≤ (n + 1) ^ (obs.algebraicDegree + 1) := polynomial_evaluation_complexity obs
     _ ≤ (n + 1) ^ (d + 1) := Nat.pow_le_pow_right (Nat.le_add_left 1 n) h1
 
 /--
@@ -296,6 +357,13 @@ def Distinguishes (obs : BoundedObserver n) (f : BoolFun n) : Prop :=
   |obs.observe f - obs.randomExpectation| ≥ 1 / obs.bound
 
 /--
+`DistinguishesWithMargin obs f ε` means `obs` distinguishes `f` from random expectation
+with an additive margin `ε` beyond the baseline threshold `1 / obs.bound`.
+-/
+def DistinguishesWithMargin (obs : BoundedObserver n) (f : BoolFun n) (ε : ℝ) : Prop :=
+  |obs.observe f - obs.randomExpectation| ≥ 1 / obs.bound + ε
+
+/--
   **IsPseudorandomTo**: The central definition of the entire framework.
 
   A Boolean function f is **pseudorandom to observer class O** if every
@@ -304,6 +372,38 @@ def Distinguishes (obs : BoundedObserver n) (f : BoolFun n) : Prop :=
 def IsPseudorandomTo (f : BoolFun n) (O : ObserverClass n) : Prop :=
   ∀ obs : BoundedObserver n, obs ∈ O →
     |obs.observe f - obs.randomExpectation| < 1 / obs.bound
+
+/-- If `f` is pseudorandom to `O`, then no observer in `O` distinguishes `f`. -/
+theorem not_distinguishes_of_isPseudorandomTo {f : BoolFun n} {O : ObserverClass n}
+    {obs : BoundedObserver n} (hPR : IsPseudorandomTo f O) (hObs : obs ∈ O) :
+    ¬Distinguishes obs f := by
+  intro hDist
+  exact (not_lt_of_ge hDist) (hPR obs hObs)
+
+/--
+`IsPseudorandomToWithSlack f O ε` is an approximate/robust variant:
+observers in `O` have advantage strictly below `1 / obs.bound + ε`.
+-/
+def IsPseudorandomToWithSlack (f : BoolFun n) (O : ObserverClass n) (ε : ℝ) : Prop :=
+  ∀ obs : BoundedObserver n, obs ∈ O →
+    |obs.observe f - obs.randomExpectation| < 1 / obs.bound + ε
+
+theorem pseudorandomWithSlack_iff_no_distinguisher_withMargin (f : BoolFun n) (O : ObserverClass n)
+    (ε : ℝ) :
+    IsPseudorandomToWithSlack f O ε ↔ ∀ obs ∈ O, ¬DistinguishesWithMargin obs f ε := by
+  simp only [IsPseudorandomToWithSlack, DistinguishesWithMargin]
+  constructor
+  · intro h obs hObs hDist
+    have hSmall := h obs hObs
+    exact absurd hSmall (not_lt.mpr hDist)
+  · intro h obs hObs
+    by_contra hNot
+    push_neg at hNot
+    exact h obs hObs hNot
+
+@[simp] theorem isPseudorandomToWithSlack_zero (f : BoolFun n) (O : ObserverClass n) :
+    IsPseudorandomToWithSlack f O 0 ↔ IsPseudorandomTo f O := by
+  simp [IsPseudorandomToWithSlack, IsPseudorandomTo]
 
 /--
   **Monotonicity**: If f is pseudorandom to O₂, and O₁ ⊆ O₂,

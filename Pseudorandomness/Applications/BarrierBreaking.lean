@@ -54,24 +54,21 @@ theorem all_barriers_unified :
     obtain ⟨f, hPR⟩ := hBGS q
     use f
     intro ⟨obs, hObs, hDist⟩
-    have hSmall := hPR obs (hBounded hObs)
-    exact absurd hSmall (not_lt.mpr hDist)
+    exact (not_distinguishes_of_isPseudorandomTo hPR (hBounded hObs)) hDist
   · -- Algebrization
     intro T hAlg
     obtain ⟨d, hBounded⟩ := hAlg
     obtain ⟨f, hPR⟩ := hAW d
     use f
     intro ⟨obs, hObs, hDist⟩
-    have hSmall := hPR obs (hBounded hObs)
-    exact absurd hSmall (not_lt.mpr hDist)
+    exact (not_distinguishes_of_isPseudorandomTo hPR (hBounded hObs)) hDist
   · -- Natural proofs
     intro T hNat
     obtain ⟨k, hBounded⟩ := hNat
     obtain ⟨f, hPR⟩ := hPRF k
     use f
     intro ⟨obs, hObs, hDist⟩
-    have hSmall := hPR obs (hBounded hObs)
-    exact absurd hSmall (not_lt.mpr hDist)
+    exact (not_distinguishes_of_isPseudorandomTo hPR (hBounded hObs)) hDist
 
 /-! ## What Would Break All Barriers -/
 
@@ -152,8 +149,7 @@ theorem p_ne_np_proof_requirements :
   · -- T is natural, so it can't distinguish PR functions within its bound
     right
     intro k f hPR obs _hObs hObsPoly hDist
-    have hSmall := hPR obs hObsPoly
-    exact absurd hSmall (not_lt.mpr hDist)
+    exact (not_distinguishes_of_isPseudorandomTo hPR hObsPoly) hDist
   · -- T is not natural
     left
     exact hNat
@@ -176,8 +172,7 @@ theorem successful_technique_not_natural :
   constructor
   · exact ⟨obs, hObs, hDist⟩
   · intro hPR
-    have hSmall := hPR obs (hBounded hObs)
-    exact absurd hSmall (not_lt.mpr hDist)
+    exact (not_distinguishes_of_isPseudorandomTo hPR (hBounded hObs)) hDist
 
 /-! ## The Barrier Hierarchy -/
 
